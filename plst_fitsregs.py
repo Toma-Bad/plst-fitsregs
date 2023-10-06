@@ -262,7 +262,11 @@ def get_files_regs_data(fitsfilename,regionfilelist,unc_fitsfilename = None,beam
 	print(data_w_units.unit,"<<<<<<<<<<<")
 	if data_w_units.unit == "Jy/pix":
 		data_w_units = (data_w_units * u.pix / pixarea).to(u.MJy/u.sr)
-		print(data_w_units.unit,"<<<<<<<<<<<<")
+		print(data_w_units.unit,"###<<<<<<<<<<<<")
+	if "arcsec2" in str(data_w_units.unit):
+		data_w_units = (data_w_units).to(u.MJy/u.sr)
+		print(data_w_units.unit,"###<<<<<<<<<<<<")
+
 	return data_w_units,pht_to_return,{'wcs':wcs,'wlen':wlen,'telname':telname,'pixarea':pixarea},header
 
 
@@ -279,7 +283,7 @@ if __name__ == "__main__":
 
 	So far works with WISE, Herschel, SCUBA1 and 2, MIPS data.
 	"""
-	parser = argparse.ArgumentParser(description="PlotNiceRegions")
+	parser = argparse.ArgumentParser(description=description)
 	parser.add_argument('filelist',type=str,nargs='+',help="The list of fitsfiles to be plotted.")
 	parser.add_argument('--rlist',type=str,nargs='+',required = True,help="The list of DS9 region files.")
 	parser.add_argument('--rname',type=str,nargs='?',const='on',default='on',required=False,help="A string that is in the title of the region inside the region file. The first region to match is used. Default is 'on'")
@@ -310,19 +314,23 @@ if __name__ == "__main__":
 	
 	for ff in fits_filelist:
 		rr = list(get_files_regs_data(ff,regfilelist,rname=rname))
-		print(rr[1:])
+		print(rr[1:-1])
 		centralcoords = rr[1][0]
 		wcs = rr[2]['wcs']
-		if "Herschel" in r[2]['telname']:
+		if wcs.naxis > 2:
+			wcs = wcs.dropaxis(-1)
+
+		if "Herschel" in rr[2]['telname']:
 			hdu = rr[-1]
 			hdu = fits.PrimaryHDU(data = rr[0].value,header=rr[-1],do_not_scale_image_data=True)
 			hdu = montage.reproject_hdu(hdu, north_aligned=True)
 			rr[0] = hdu.data*rr[0].unit
 			header = hdu.header
 			wcs = WCS(header)
+		
 		fig = plt.figure(figsize = (8,8))
 		ax = fig.add_subplot(111,projection = wcs)
-		implot = ax.imshow(rr[0].value,origin='lower',cmap='jet')
+		implot = ax.imshow(rr[0].value,origin='lower',cmap='inferno',vmin=0)
 		cenpix =  np.round(wcs.wcs_world2pix([[centralcoords.positions.ra.value,centralcoords.positions.dec.value]],0)[0])
 		pixsize = np.sqrt(rr[2]['pixarea'])
 		apradius = rr[1][0].r
@@ -342,7 +350,10 @@ if __name__ == "__main__":
 			cbar.set_label(r"Intensity [$\mathrm{MJy\,sr^{-1}}$]",size = 18)
 		if rr[0].unit == "Jy/beam":
 			cbar.set_label(r"Flux Density [$\mathrm{Jy\,beam^{-1}}$]",size = 18)
-		
+		if rr[0].unit == "mJy/beam":
+			cbar.set_label(r"Flux Density [$\mathrm{mJy\,beam^{-1}}$]",size = 18)
+
+	
 		ax = plt.gca()
 		ra = ax.coords[0]
 		ra.set_ticks(number = 3)
