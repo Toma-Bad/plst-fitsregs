@@ -357,12 +357,13 @@ if __name__ == "__main__":
 		ax = plt.gca()
 		ra = ax.coords[0]
 		ra.set_ticks(number = 3)
-		ra.set_axislabel(" ")
+		ra.set_axislabel("RA")
 		dec = ax.coords[1]
 		dec.set_ticks(number=4)
 		dec.set_ticklabel(rotation = "vertical",exclude_overlapping=True,va='top')
-		dec.set_axislabel(" ")
+		dec.set_axislabel("Dec")
 		ax.tick_params(axis='both', which='both', direction='in',width = 2, color = 'white')
+		plt.tight_layout()
 		if args.pdf:
 			plt.savefig(gname+rr[2]["telname"].replace(" ","")+"{:.0f}".format(rr[2]["wlen"].to(u.micron).value)+".pdf")
 		else:
